@@ -172,6 +172,7 @@
         .yes-btn {
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             color: white;
+            transition: all 0.2s ease;
         }
 
         .yes-btn:hover {
@@ -186,8 +187,9 @@
         .no-btn {
             background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
             color: #555;
-            position: relative;
+            position: fixed;
             transition: all 0.2s ease;
+            z-index: 9999;
         }
 
         /* Modal styles */
@@ -199,7 +201,7 @@
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.7);
-            z-index: 1000;
+            z-index: 10000;
             align-items: center;
             justify-content: center;
         }
@@ -288,6 +290,11 @@
                 opacity: 0;
             }
         }
+
+        @keyframes fadeOut {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(0.9); }
+        }
     </style>
 </head>
 <body>
@@ -335,6 +342,8 @@
         const valentineScreen = document.getElementById('valentineScreen');
         const greetingBtn = document.getElementById('greetingBtn');
 
+        let noBtnInitialized = false;
+
         // Handle greeting button click
         greetingBtn.addEventListener('click', function() {
             greetingScreen.style.animation = 'fadeOut 0.5s ease';
@@ -344,16 +353,6 @@
                 valentineScreen.style.animation = 'modalSlideIn 0.5s ease';
             }, 500);
         });
-
-        // Add fade out animation
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes fadeOut {
-                from { opacity: 1; transform: scale(1); }
-                to { opacity: 0; transform: scale(0.9); }
-            }
-        `;
-        document.head.appendChild(style);
 
         // Create floating hearts
         function createFloatingHearts() {
@@ -369,76 +368,72 @@
         }
         createFloatingHearts();
 
-        // Move NO button away from cursor
+        // Function to move button to random position on screen
+        function moveButton(button, avoidElement = null) {
+            const padding = 20; // Padding from edges
+            const buttonWidth = button.offsetWidth;
+            const buttonHeight = button.offsetHeight;
+            
+            const maxX = window.innerWidth - buttonWidth - padding;
+            const maxY = window.innerHeight - buttonHeight - padding;
+            
+            let newX, newY;
+            let attempts = 0;
+            const maxAttempts = 50;
+            
+            do {
+                newX = Math.random() * (maxX - padding) + padding;
+                newY = Math.random() * (maxY - padding) + padding;
+                attempts++;
+                
+                // If we have an element to avoid, check distance
+                if (avoidElement) {
+                    const avoidRect = avoidElement.getBoundingClientRect();
+                    const centerX = newX + buttonWidth / 2;
+                    const centerY = newY + buttonHeight / 2;
+                    const avoidCenterX = avoidRect.left + avoidRect.width / 2;
+                    const avoidCenterY = avoidRect.top + avoidRect.height / 2;
+                    
+                    const distance = Math.sqrt(
+                        Math.pow(centerX - avoidCenterX, 2) + 
+                        Math.pow(centerY - avoidCenterY, 2)
+                    );
+                    
+                    // If far enough away, use this position
+                    if (distance > 200) break;
+                }
+            } while (avoidElement && attempts < maxAttempts);
+            
+            button.style.left = newX + 'px';
+            button.style.top = newY + 'px';
+        }
+
+        // Move NO button away from cursor (desktop)
         noBtn.addEventListener('mouseenter', function(e) {
-            // Change to absolute positioning on first hover
-            if (noBtn.style.position !== 'absolute') {
-                const btnRect = noBtn.getBoundingClientRect();
-                const containerRect = buttonContainer.getBoundingClientRect();
-                noBtn.style.position = 'absolute';
-                noBtn.style.left = (btnRect.left - containerRect.left) + 'px';
-                noBtn.style.top = (btnRect.top - containerRect.top) + 'px';
+            if (!noBtnInitialized) {
+                noBtnInitialized = true;
             }
             
-            const containerRect = buttonContainer.getBoundingClientRect();
-            const btnRect = noBtn.getBoundingClientRect();
+            // Move NO button to random position on screen
+            moveButton(noBtn);
             
-            // Calculate random position within container
-            const maxX = containerRect.width - btnRect.width;
-            const maxY = containerRect.height - btnRect.height;
-            
-            let newX = Math.random() * maxX;
-            let newY = Math.random() * maxY;
-            
-            // Make sure it's far from current position
-            const currentX = btnRect.left - containerRect.left;
-            const currentY = btnRect.top - containerRect.top;
-            
-            if (Math.abs(newX - currentX) < 150) {
-                newX = currentX > containerRect.width / 2 ? 0 : maxX;
-            }
-            if (Math.abs(newY - currentY) < 80) {
-                newY = currentY > containerRect.height / 2 ? 0 : maxY;
-            }
-            
-            noBtn.style.left = newX + 'px';
-            noBtn.style.top = newY + 'px';
+            // Also move YES button to a random position
+            moveButton(yesBtn, noBtn);
         });
 
-        // Make NO button try to run away on touch devices
+        // Make NO button run away on touch devices
         noBtn.addEventListener('touchstart', function(e) {
             e.preventDefault();
             
-            // Change to absolute positioning on first touch
-            if (noBtn.style.position !== 'absolute') {
-                const btnRect = noBtn.getBoundingClientRect();
-                const containerRect = buttonContainer.getBoundingClientRect();
-                noBtn.style.position = 'absolute';
-                noBtn.style.left = (btnRect.left - containerRect.left) + 'px';
-                noBtn.style.top = (btnRect.top - containerRect.top) + 'px';
+            if (!noBtnInitialized) {
+                noBtnInitialized = true;
             }
             
-            const containerRect = buttonContainer.getBoundingClientRect();
-            const btnRect = noBtn.getBoundingClientRect();
+            // Move NO button to random position on screen
+            moveButton(noBtn);
             
-            const maxX = containerRect.width - btnRect.width;
-            const maxY = containerRect.height - btnRect.height;
-            
-            let newX = Math.random() * maxX;
-            let newY = Math.random() * maxY;
-            
-            const currentX = btnRect.left - containerRect.left;
-            const currentY = btnRect.top - containerRect.top;
-            
-            if (Math.abs(newX - currentX) < 150) {
-                newX = currentX > containerRect.width / 2 ? 0 : maxX;
-            }
-            if (Math.abs(newY - currentY) < 80) {
-                newY = currentY > containerRect.height / 2 ? 0 : maxY;
-            }
-            
-            noBtn.style.left = newX + 'px';
-            noBtn.style.top = newY + 'px';
+            // Also move YES button to a random position
+            moveButton(yesBtn, noBtn);
         });
 
         // YES button click - show modal with confetti
